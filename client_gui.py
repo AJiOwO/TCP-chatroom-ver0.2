@@ -7,8 +7,8 @@ import base64
 import os
 from datetime import datetime
 from plyer import notification
-from PIL import Image, ImageTk # 新增這行
-import io # 新增這行，用來處理 Byte 資料
+from PIL import Image, ImageTk 
+import io # 處理 Byte 資料
 
 # --- 主題設定 ---
 LIGHT_THEME = {'bg': '#f0f0f0', 
@@ -28,18 +28,20 @@ DARK_THEME = {'bg': '#2e2e2e',
               'highlight': '#4da6ff', 
               'meta_fg': '#888888'}
 
+
 class ChatClient:
+    # --- 程式啟動初始化 ---
     def __init__(self, root):
         self.root = root
         self.root.title("Python Socket Chat Room")
-        self.root.geometry("900x650")
+        self.root.geometry("1600x900")
         
         self.nickname = ""
         self.sock = None
         self.is_connected = False
         self.target_private_user = None
         self.image_references = [] # 用來存圖片參照
-        self.image_data_store = {} # [新增] 用來存 Base64 原圖資料，key 是圖片的 tag ID
+        self.image_data_store = {} # 用來存 Base64 原圖資料
         self.is_dark_mode = True 
         self.current_theme = DARK_THEME
 
@@ -49,7 +51,7 @@ class ChatClient:
         tk.Button(self.top_bar, text="斷線離開", command=self.safe_exit, bg='#ff6666', fg='white').pack(side=tk.RIGHT)
 
         self.login_frame = tk.Frame(root); self.login_frame.pack(pady=50)
-        self._create_login_ui() # 抽離以保持程式碼整潔
+        self._create_login_ui() 
 
         self.main_frame = tk.Frame(root)
         self.chat_area = scrolledtext.ScrolledText(self.main_frame, state='disabled', width=65)
@@ -70,6 +72,7 @@ class ChatClient:
         self.apply_theme()
         self.root.protocol("WM_DELETE_WINDOW", self.safe_exit)
 
+    # --- 登入介面 ---
     def _create_login_ui(self):
         labels = ["Server IP:", "Server Port:", "暱稱:"]
         self.entries = {}
@@ -82,16 +85,8 @@ class ChatClient:
             self.entries[i] = e
         self.entry_ip, self.entry_port, self.entry_nickname = self.entries[0], self.entries[1], self.entries[2]
         tk.Button(self.login_frame, text="連線進入", command=self.connect_server, font=("Arial", 12), bg="#4da6ff", fg="white").grid(row=3, column=0, columnspan=2, pady=20, sticky="ew")
-
-    def safe_exit(self):
-        self.is_connected = False
-        if self.sock: 
-            try: self.sock.close() 
-            except: pass
-        self.root.destroy()
-        os._exit(0)
-
-    def recv_thread(self):
+    
+    def recv_message(self):
         f = self.sock.makefile(encoding='utf-8')
         while self.is_connected:
             try:
@@ -147,7 +142,7 @@ class ChatClient:
 
             except: break
 
-
+    # --- 內容顯示到聊天視窗 ---
     def append_chat(self, sender, message, time_str="", highlight=False, is_image=False, image_data=None):
         self.chat_area.config(state='normal')
         
@@ -172,6 +167,7 @@ class ChatClient:
         self.chat_area.see(tk.END)
         self.chat_area.config(state='disabled')
 
+    # --- 顯示縮圖 ---
     def display_image(self, b64):
         try:
             # 1. 將 Base64 轉回 Bytes，再用 PIL 開啟
@@ -210,22 +206,21 @@ class ChatClient:
 
         except Exception as e:
             print(f"圖片顯示錯誤: {e}")
-            
+    # --- 點擊圖片放大 ---        
     def open_full_image(self, img_tag):
         """點擊圖片後彈出視窗顯示原圖"""
         b64_data = self.image_data_store.get(img_tag)
         if not b64_data: return
-
         try:
-            # 1. 建立新視窗 (Toplevel)
+            # 建立新視窗 (Toplevel)
             top = tk.Toplevel(self.root)
             top.title("圖片預覽")
             
-            # 2. 讀取原圖
+            # 讀取原圖
             image_bytes = base64.b64decode(b64_data)
             img = Image.open(io.BytesIO(image_bytes))
             
-            # 3. 處理過大圖片 (如果原圖比螢幕還大，稍微縮一下，不然視窗會爆開)
+            # 處理過大圖片 (如果原圖比螢幕還大，稍微縮一下，不然視窗會爆開)
             screen_width = self.root.winfo_screenwidth()
             screen_height = self.root.winfo_screenheight()
             
@@ -237,7 +232,7 @@ class ChatClient:
             
             tk_img = ImageTk.PhotoImage(img)
             
-            # 4. 顯示圖片
+            # 顯示圖片
             lbl = tk.Label(top, image=tk_img, bg="black")
             lbl.image = tk_img # 重要：保留參照
             lbl.pack(fill=tk.BOTH, expand=True)
@@ -247,7 +242,7 @@ class ChatClient:
 
         except Exception as e:
             messagebox.showerror("錯誤", f"無法開啟圖片: {e}")
-
+    # --- 發送文字訊息 ---
     def send_message(self):
         text = self.entry_msg.get()
         if not text: return
@@ -257,7 +252,7 @@ class ChatClient:
         current_time = datetime.now().strftime('%Y/%m/%d %H:%M')
         
         try:
-            if self.target_private_user:
+            if self.target_private_user: # 判斷私訊
                 msg = {'type': 7, 
                        'target': self.target_private_user, 
                        'message': text, 
@@ -274,6 +269,8 @@ class ChatClient:
             
             self.entry_msg.delete(0, tk.END)
         except Exception as e: self.append_chat("系統", f"發送失敗: {e}")
+        
+        
     def send_image(self):
         path = filedialog.askopenfilename(filetypes=[("Images", "*.png;*.jpg;*.jpeg;*.gif")])
         if not path: return
@@ -315,6 +312,7 @@ class ChatClient:
             self.append_chat("我", "傳送了一張圖片", time_str=current_time, is_image=True, image_data=data)
         except: pass
 
+    # 連線
     def connect_server(self):
         ip, port, name = self.entry_ip.get(), self.entry_port.get(), self.entry_nickname.get()
         if not ip or not port or not name: return messagebox.showerror("錯誤", "欄位不可為空")
@@ -330,21 +328,22 @@ class ChatClient:
             self.root.title(f"聊天室 - {self.nickname}")
         except Exception as e: messagebox.showerror("連線失敗", str(e))
 
-    
-
     def update_user_list(self, users):
         self.user_listbox.delete(0, tk.END)
         for u in users: self.user_listbox.insert(tk.END, u)
+        # --- 當私訊對象離開時自動換回廣播 ---
         if self.target_private_user and (self.target_private_user not in users):
-            self.target_private_user = None
+            self.target_private_user = None 
             self.lbl_status.config(text="模式: 廣播 (自動切換)", fg=self.current_theme['fg'])
             self.append_chat("系統", "私訊對象已離線")
 
+    # --- 切換主題 ---
     def toggle_theme(self):
         self.is_dark_mode = not self.is_dark_mode
         self.current_theme = DARK_THEME if self.is_dark_mode else LIGHT_THEME
         self.apply_theme()
 
+    # --- 切換主題時刷新畫面顏色 ---
     def apply_theme(self):
         theme = self.current_theme
         self.root.config(bg=theme['bg'])
@@ -359,6 +358,7 @@ class ChatClient:
         self.chat_area.tag_config("content", foreground=theme['text_fg'])
         self.chat_area.tag_config("highlight", foreground=theme['highlight'])
 
+    # --- 選擇私訊對象 ---
     def on_user_select(self, e):
         sel = self.user_listbox.curselection()
         if sel:
@@ -374,6 +374,16 @@ class ChatClient:
             self.target_private_user = None
             self.lbl_status.config(text="模式: 廣播", fg=self.current_theme['fg'])
     
+    # --- 安全關閉程式 ---
+    def safe_exit(self):
+        self.is_connected = False
+        if self.sock: 
+            try: self.sock.close() 
+            except: pass
+        self.root.destroy()
+        os._exit(0)
+
+    # --- 桌面通知 ---
     def show_notification(self, t, m):
         try: notification.notify(title=t, message=m, timeout=3)
         except: pass
