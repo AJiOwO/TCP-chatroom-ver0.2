@@ -16,6 +16,7 @@ client_list = []
 # 資料庫鎖：防止多執行緒同時寫入導致資料遺失
 db_lock = threading.Lock() 
 
+# --- 初始化資料庫 ---
 def init_db():
     with db_lock:
         conn = sqlite3.connect(DB_NAME)
@@ -31,6 +32,7 @@ def init_db():
         conn.close()
     print(f"資料庫 {DB_NAME} 連線成功")
 
+# --- 儲存訊息 ---
 def save_message(json_str):
     try:
         with db_lock: #確保寫入時不會被其他人打斷
@@ -42,6 +44,7 @@ def save_message(json_str):
     except Exception as e:
         print(f"儲存失敗: {e}")
 
+# --- 讀取歷史訊息 ---
 def get_recent_messages(limit=10):
     "讀取歷史訊息 (加入鎖保護)"
     messages = []
@@ -57,6 +60,7 @@ def get_recent_messages(limit=10):
     except Exception as e:
         print(f"讀取失敗: {e}")
     return messages
+
 # --- Type 6: 更新名單 ---
 def broadcast_user_list():
     nicknames = [c['nickname'] for c in client_list]
@@ -66,7 +70,8 @@ def broadcast_user_list():
     for client in client_list:
         try: client['socket'].sendall(data)
         except: pass
-# --- Type 5: 踢人 ---
+        
+# --- Type 5: 發送系統公告 ---
 def kick_client_by_name(target_name):
     global client_list
     target_client = next((c for c in client_list if c['nickname'] == target_name), None)
@@ -88,7 +93,8 @@ def kick_client_by_name(target_name):
         for c in client_list:
             try: c['socket'].sendall(data)
             except: pass
-
+            
+# --- 管理員控制台 ---
 def admin_console():
     print("--- Server Started ---")
     """管理員後台指令執行緒"""
@@ -136,7 +142,7 @@ def admin_console():
         except Exception as e:
             print(f"Console Error: {e}")
 
-def connection_thread(new_sock, sockname):
+def recv_message(new_sock, sockname):
     global client_list
     nickname = ''
     try:
@@ -176,7 +182,7 @@ def connection_thread(new_sock, sockname):
 
             # --- Type 3 :訊息處理 ---
             if message['type'] == 3:
-                # 1. 回傳 Type 4 給發送者 (確認收到)
+                # 1. 回傳 Type 4 給發送者 
                 new_sock.sendall((json.dumps({'type': 4}) + '\n').encode('utf-8'))
                 
                 # 2. 準備轉發給其他人的 Type 5 封包
@@ -187,7 +193,7 @@ def connection_thread(new_sock, sockname):
                     'type': 5,
                     'nickname': message['nickname'],
                     'message': message['message'],
-                    'time': current_time  # <--- 將時間加入封包
+                    'time': current_time  # 將時間加入封包
                 }
                 save_message(json.dumps(msgdict))
                 
@@ -265,4 +271,4 @@ if __name__ == '__main__':
     threading.Thread(target=admin_console, daemon=True).start()
     while True:
         c, a = sock.accept()
-        threading.Thread(target=connection_thread, args=(c, a), daemon=True).start()
+        threading.Thread(target=recv_message, args=(c, a), daemon=True).start()
