@@ -322,7 +322,7 @@ class ChatClient:
             self.sock.connect((ip, int(port)))
             self.sock.sendall((json.dumps({'type': 1, 'nickname': name})+'\n').encode('utf-8'))
             self.is_connected = True
-            threading.Thread(target=self.recv_thread, daemon=True).start()
+            threading.Thread(target=self.recv_message, daemon=True).start()
             self.login_frame.pack_forget()
             self.main_frame.pack(fill=tk.BOTH, expand=True)
             self.root.title(f"聊天室 - {self.nickname}")
