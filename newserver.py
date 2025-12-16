@@ -71,7 +71,7 @@ def broadcast_user_list():
         try: client['socket'].sendall(data)
         except: pass
         
-# --- Type 5: 發送系統公告 ---
+# --- 踢人處理 ---
 def kick_client_by_name(target_name):
     global client_list
     target_client = next((c for c in client_list if c['nickname'] == target_name), None)
@@ -189,6 +189,7 @@ def recv_message(new_sock, sockname):
                 # 取得當前時間並格式化
                 current_time = datetime.now().strftime('%Y/%m/%d %H:%M')
                 
+                # --- Type 5 :廣播訊息 ---
                 msgdict = {
                     'type': 5,
                     'nickname': message['nickname'],

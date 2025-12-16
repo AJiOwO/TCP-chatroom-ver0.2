@@ -51,7 +51,7 @@ class ChatClient:
         tk.Button(self.top_bar, text="斷線離開", command=self.safe_exit, bg='#ff6666', fg='white').pack(side=tk.RIGHT)
 
         self.login_frame = tk.Frame(root); self.login_frame.pack(pady=50)
-        self._create_login_ui() 
+        self.create_login_ui() 
 
         self.main_frame = tk.Frame(root)
         self.chat_area = scrolledtext.ScrolledText(self.main_frame, state='disabled', width=65)
@@ -73,7 +73,7 @@ class ChatClient:
         self.root.protocol("WM_DELETE_WINDOW", self.safe_exit)
 
     # --- 登入介面 ---
-    def _create_login_ui(self):
+    def create_login_ui(self):
         labels = ["Server IP:", "Server Port:", "暱稱:"]
         self.entries = {}
         defaults = ["127.0.0.1", "6000", ""]
