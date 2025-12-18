@@ -135,8 +135,8 @@ class ChatClient:
 
                 # --- 私訊 (Type 7) ---
                 if msg['type'] == 7:
-                    sender = msg['sender','未知使用者']
-                    content = msg['message']
+                    sender = msg.get('sender', '未知使用者') 
+                    content = msg.get('message', '')
                     msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
                     
                     
