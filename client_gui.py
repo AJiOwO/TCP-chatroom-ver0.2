@@ -1,6 +1,7 @@
 #啟動程式前，需下載plyer與pillow
 "輸入：pip install plyer/pip install Pillow"
 
+
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, filedialog
 import socket
@@ -97,53 +98,76 @@ class ChatClient:
                 if not text: break
                 msg = json.loads(text)
                 
-                if msg['type'] == 2:
+                msg_type = msg.get('type')
+                nickname = msg.get('nickname', 'Unknown')
+                sender = msg.get('sender', nickname) # 有些封包用 sender, 有些用 nickname
+                msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
+                is_history = msg.get('is_history', False) # 抓取歷史訊息標記
+                
+                notify_content = None # 預設為 None (代表不用跳通知)
+
+                # --- Type 2: 系統登入成功 ---
+                if msg_type == 2:
                     self.append_chat("系統", "登入成功！")
                     
-                if msg['type'] == 4: 
+                # --- Type 4: 確認 ---
+                if msg_type == 4: 
                     continue
                 
-                # --- 一般廣播 ---
-                if msg['type'] == 5:
-                    sender = msg['nickname']
+                # --- Type 3: 一般廣播 ---
+                if msg_type == 3:
                     content = msg['message']
-                    msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
                     self.append_chat(sender, content, time_str=msg_time)
-                # --- 踢人通知 ---
-                if msg.get('type') == 5 and msg.get('message') == '你已被踢出聊天室':
-                    messagebox.showwarning("通知", "你已被管理員踢出聊天室")
-                    self.safe_exit()
-                    return
-                # --- 伺服器關閉處理 ---
-                if msg.get('type') == 5 and '伺服器已關閉' in msg.get('message', ''):
-                    # 1. 顯示在聊天室
-                    self.append_chat("系統", "伺服器已關閉，程式將在 10 秒後結束...", highlight=True)
-                    
-                    # 2. 鎖住輸入框 (不讓使用者繼續打字)
-                    self.entry_msg.config(state='disabled')
-                    
-                    # 3. 設定後執行 self.safe_exit
-                    self.root.after(10000, self.safe_exit)
+                    notify_content = content # 設定要通知的內容
 
-                # --- 更新名單 ---
-                if msg['type'] == 6:
-                    self.update_user_list(msg['users'])
-
-                # --- 收到私訊 ---
-                if msg['type'] == 7:
-                    sender = msg['sender']
+                # --- Type 5: 系統公告 ---
+                if msg_type == 5:
                     content = msg['message']
-                    msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
-                    self.append_chat(sender, f"[私訊] {content}", time_str=msg_time, highlight=True)
+                    
+                    # 特殊狀況處理
+                    if content == '你已被踢出聊天室':
+                        messagebox.showwarning("通知", "你已被管理員踢出聊天室")
+                        self.safe_exit()
+                        return
+                    
+                    if '伺服器已關閉' in content:
+                        self.append_chat("系統", "伺服器已關閉，程式將在 10 秒後結束...", highlight=True)
+                        self.entry_msg.config(state='disabled')
+                        self.root.after(10000, self.safe_exit)
+                    
+                    # 顯示公告
+                    self.append_chat(sender, content, time_str=msg_time)
+                    # 系統公告通常不跳通知，如果要跳，把下面這行註解打開
+                    # notify_content = content
 
-                # --- 收到圖片 ---
-                if msg['type'] == 9:
-                    sender = msg['nickname']
-                    msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
+                # --- Type 6: 更新名單 ---
+                if msg_type == 6:
+                    self.update_user_list(msg['users'])
+                    # 注意：這裡沒有設定 notify_content，所以最後不會跳通知 (正確!)
+
+                # --- Type 7: 收到私訊 ---
+                if msg_type == 7:
+                    content = msg['message']
+                    self.append_chat(sender, f"[私訊] {content}", time_str=msg_time, highlight=True)
+                    notify_content = f"[私訊] {content}"
+
+                # --- Type 9: 收到圖片 ---
+                if msg_type == 9:
                     self.append_chat(sender, "傳送了一張圖片", time_str=msg_time)
                     self.display_image(msg['image_data'])
+                    notify_content = "傳送了一張圖片"
 
-            except: break
+                # 只有當 notify_content 有值的時候，才去檢查要不要跳通知
+                # 這樣 Type 6 (更新名單) 因為 notify_content 是 None，就會自動跳過，不會報錯
+                if notify_content:
+                    if sender != self.nickname and sender != '系統' and not is_history:
+                        self.show_notification(f"來自 {sender}", notify_content)
+
+            except Exception as e:
+                print(f"[Error] 接收訊息錯誤: {e}")
+                # 建議這裡先不要 break，印出錯誤就好，避免因為一個小 bug 導致整個斷線
+                # break
+            
 
     # --- 內容顯示到聊天視窗 ---
     def append_chat(self, sender, message, time_str="", highlight=False, is_image=False, image_data=None):
@@ -388,11 +412,17 @@ class ChatClient:
 
     # --- 桌面通知 ---
     def show_notification(self, t, m):
-        try: notification.notify(title=t, message=m, timeout=3)
-        except: pass
+        try:
+        # 測試用：印出一行字證明程式有跑到這裡
+            print(f"[Debug] 準備發送通知: {t} - {m}") 
+            
+            notification.notify(title=t, message=m, timeout=3)
+            
+        except Exception as e:
+            # 把 pass 改成 print，讓錯誤現形
+            print(f"[Error] 通知發送失敗: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
     ChatClient(root)
-
     root.mainloop()
