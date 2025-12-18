@@ -287,22 +287,20 @@ if __name__ == '__main__':
     while True:
         c, a = sock.accept()
         if len(client_list) >= MAX_CLIENTS:
-            print(f"拒絕連線 {a}: 伺服器已滿 ({len(client_list)}/{MAX_CLIENTS})")
+            print(f"拒絕連線 {a}: 伺服器已滿")
             
             try:
-
                 reject_msg = {
                     'type': 5,
                     'nickname': '系統',
-                    'message': '伺服器人數已滿，連線被拒絕。'
+                    'message': '伺服器人數已滿，連線被拒絕。',
+                    'action': 'full' 
                 }
                 c.sendall((json.dumps(reject_msg) + '\n').encode('utf-8'))
-                
-                time.sleep(0.1) 
-            except:
-                pass
+                time.sleep(0.1)
+            except: pass
             
-            c.close() 
-            continue  
+            c.close()
+            continue
         threading.Thread(target=recv_message, args=(c, a), daemon=True).start()
         

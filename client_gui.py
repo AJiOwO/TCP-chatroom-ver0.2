@@ -118,21 +118,35 @@ class ChatClient:
                     self.append_chat(sender, content, time_str=msg_time)
                     notify_content = content # 
 
-                # --- 系統公告 (Type 5) ---
-                if msg.get('type') == 5 and msg.get('action') == 'kick':
-                    messagebox.showwarning("通知", "你已被管理員踢出聊天室")
-                    self.safe_exit()
-                    return
+                # --- Type 5: 廣播訊息與系統指令 ---
+                if msg['type'] == 5:
+                    action = msg.get('action')
+                    
+                    # 1. 處理踢人
+                    if action == 'kick':
+                        messagebox.showwarning("通知", "你已被管理員踢出聊天室")
+                        self.safe_exit()
+                        return
+                        
+                    # 2. 處理伺服器關閉
+                    elif action == 'shutdown':
+                        self.append_chat("系統", "伺服器已關閉，程式將在 10 秒後結束...", highlight=True)
+                        self.entry_msg.config(state='disabled')
+                        self.root.after(10000, self.safe_exit)
+                        return
 
-                # --- [修正後] 伺服器關閉處理 ---
-                if msg.get('type') == 5 and msg.get('action') == 'shutdown':
-                    self.append_chat("系統", "伺服器已關閉，程式將在 10 秒後結束...", highlight=True)
-                    self.entry_msg.config(state='disabled')
-                    self.root.after(10000, self.safe_exit)
-                if msg.get('type') == 5 and '伺服器人數已滿' in msg.get('message', ''):
-                    messagebox.showwarning("連線失敗", "伺服器人數已滿，請稍後再試。")
-                    self.safe_exit() # 自動關閉程式
-                    return
+                    # 3. [新增] 處理人數已滿
+                    elif action == 'full':
+                        messagebox.showwarning("連線失敗", "伺服器人數已滿，請稍後再試。")
+                        self.safe_exit()
+                        return
+
+                    # 4. [關鍵] 一般聊天訊息 (必須要有這段，不然會收不到訊息)
+                    else:
+                        sender = msg['nickname']
+                        content = msg['message']
+                        msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
+                        self.append_chat(sender, content, time_str=msg_time)
  
                 if msg_type == 6: # 更新名單
                     self.update_user_list(msg['users'])
