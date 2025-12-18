@@ -95,7 +95,8 @@ class ChatClient:
         while self.is_connected:
             try:
                 text = f.readline()
-                if not text: break
+                if not text:
+                    break
                 msg = json.loads(text)
     
                 msg_type = msg.get('type')
@@ -156,7 +157,9 @@ class ChatClient:
 
             except Exception as e:
                 print(f"[Error] 接收訊息錯誤: {e}")
-                # break # 建議測試時先註解掉 break
+                self.root.after(0, lambda: messagebox.showerror("斷線", "與伺服器的連線已中斷"))
+                break
+        self.is_connected = False
             
 
     # --- 內容顯示到聊天視窗 ---
