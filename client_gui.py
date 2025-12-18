@@ -130,8 +130,8 @@ class ChatClient:
                         self.root.after(10000, self.safe_exit)
                     self.append_chat(sender, content, time_str=msg_time)
                     if msg.get('type') == 5 and '伺服器人數已滿' in msg.get('message', ''):
-                    messagebox.showwarning("連線失敗", "伺服器人數已滿，請稍後再試。")
-                    self.safe_exit() # 自動關閉程式
+                        messagebox.showwarning("連線失敗", "伺服器人數已滿，請稍後再試。")
+                        self.safe_exit() # 自動關閉程式
                     return
  
                 if msg_type == 6: # 更新名單
