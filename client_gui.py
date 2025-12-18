@@ -98,75 +98,62 @@ class ChatClient:
                 if not text: break
                 msg = json.loads(text)
                 
+                # 1. 預先抓取變數
                 msg_type = msg.get('type')
                 nickname = msg.get('nickname', 'Unknown')
-                sender = msg.get('sender', nickname) # 有些封包用 sender, 有些用 nickname
+                sender = msg.get('sender', nickname)
                 msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
-                is_history = msg.get('is_history', False) # 抓取歷史訊息標記
+                is_history = msg.get('is_history', False)
                 
-                notify_content = None # 預設為 None (代表不用跳通知)
+                notify_content = None # 初始化為 None
 
-                # --- Type 2: 系統登入成功 ---
-                if msg_type == 2:
+                if msg_type == 2: # 登入成功
                     self.append_chat("系統", "登入成功！")
-                    
-                # --- Type 4: 確認 ---
-                if msg_type == 4: 
-                    continue
                 
-                # --- Type 3: 一般廣播 ---
+                if msg_type == 4: continue 
+                
+                # --- 一般廣播 (Type 3) ---
                 if msg_type == 3:
                     content = msg['message']
                     self.append_chat(sender, content, time_str=msg_time)
-                    notify_content = content # 設定要通知的內容
+                    notify_content = content # 
 
-                # --- Type 5: 系統公告 ---
+                # --- 系統公告 (Type 5) ---
                 if msg_type == 5:
                     content = msg['message']
-                    
-                    # 特殊狀況處理
                     if content == '你已被踢出聊天室':
                         messagebox.showwarning("通知", "你已被管理員踢出聊天室")
-                        self.safe_exit()
-                        return
-                    
+                        self.safe_exit(); return
                     if '伺服器已關閉' in content:
-                        self.append_chat("系統", "伺服器已關閉，程式將在 10 秒後結束...", highlight=True)
+                        self.append_chat("系統", "伺服器已關閉...", highlight=True)
                         self.entry_msg.config(state='disabled')
                         self.root.after(10000, self.safe_exit)
-                    
-                    # 顯示公告
                     self.append_chat(sender, content, time_str=msg_time)
-                    # 系統公告通常不跳通知，如果要跳，把下面這行註解打開
-                    # notify_content = content
+                    # notify_content = content # 若系統公告也要通知，把這行註解拿掉
 
-                # --- Type 6: 更新名單 ---
-                if msg_type == 6:
+                if msg_type == 6: # 更新名單
                     self.update_user_list(msg['users'])
-                    # 注意：這裡沒有設定 notify_content，所以最後不會跳通知 (正確!)
 
-                # --- Type 7: 收到私訊 ---
+                # --- 私訊 (Type 7) ---
                 if msg_type == 7:
                     content = msg['message']
                     self.append_chat(sender, f"[私訊] {content}", time_str=msg_time, highlight=True)
-                    notify_content = f"[私訊] {content}"
+                    notify_content = f"[私訊] {content}" # 這裡原本就有寫，所以私訊正常
 
-                # --- Type 9: 收到圖片 ---
+                # --- 圖片 (Type 9) ---
                 if msg_type == 9:
                     self.append_chat(sender, "傳送了一張圖片", time_str=msg_time)
                     self.display_image(msg['image_data'])
                     notify_content = "傳送了一張圖片"
 
-                # 只有當 notify_content 有值的時候，才去檢查要不要跳通知
-                # 這樣 Type 6 (更新名單) 因為 notify_content 是 None，就會自動跳過，不會報錯
+                # --- 統一通知判斷 ---
                 if notify_content:
                     if sender != self.nickname and sender != '系統' and not is_history:
                         self.show_notification(f"來自 {sender}", notify_content)
 
             except Exception as e:
                 print(f"[Error] 接收訊息錯誤: {e}")
-                # 建議這裡先不要 break，印出錯誤就好，避免因為一個小 bug 導致整個斷線
-                # break
+                # break # 建議測試時先註解掉 break
             
 
     # --- 內容顯示到聊天視窗 ---
