@@ -147,6 +147,8 @@ class ChatClient:
                         content = msg['message']
                         msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
                         self.append_chat(sender, content, time_str=msg_time)
+                        if sender != self.nickname and not is_history:
+                            self.show_notification(f"{sender} 說", content)
  
                 if msg_type == 6: # 更新名單
                     self.update_user_list(msg['users'])
@@ -160,7 +162,8 @@ class ChatClient:
                     
                     self.append_chat(sender, f"[來自 {sender} 的私訊] {content}", time_str=msg_time, highlight=True)
 
-                    self.show_notification(f"來自 {sender} 的私訊", content)
+                    if not is_history:
+                        self.show_notification(f"私訊: {sender}", content)
                 # --- 圖片 (Type 9) ---
                 if msg_type == 9:
                     self.append_chat(sender, "傳送了一張圖片", time_str=msg_time)
