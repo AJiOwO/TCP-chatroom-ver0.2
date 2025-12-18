@@ -119,19 +119,19 @@ class ChatClient:
                     notify_content = content # 
 
                 # --- 系統公告 (Type 5) ---
-                if msg_type == 5:
-                    content = msg['message']
-                    if content == '你已被踢出聊天室':
-                        messagebox.showwarning("通知", "你已被管理員踢出聊天室")
-                        self.safe_exit(); return
-                    if '伺服器已關閉' in content:
-                        self.append_chat("系統", "伺服器已關閉...", highlight=True)
-                        self.entry_msg.config(state='disabled')
-                        self.root.after(10000, self.safe_exit)
-                    self.append_chat(sender, content, time_str=msg_time)
-                    if msg.get('type') == 5 and '伺服器人數已滿' in msg.get('message', ''):
-                        messagebox.showwarning("連線失敗", "伺服器人數已滿，請稍後再試。")
-                        self.safe_exit() # 自動關閉程式
+                if msg.get('type') == 5 and msg.get('message') == '你已被踢出聊天室' and msg.get('nickname') == '系統':
+                    messagebox.showwarning("通知", "你已被管理員踢出聊天室")
+                    self.safe_exit()
+                    return
+
+                # --- 伺服器關閉處理 ---
+                if msg.get('type') == 5 and '伺服器已關閉' in msg.get('message', '') and msg.get('nickname') == '系統':
+                    self.append_chat("系統", "伺服器已關閉，程式將在 10 秒後結束...", highlight=True)
+                    self.entry_msg.config(state='disabled')
+                    self.root.after(10000, self.safe_exit)
+                if msg.get('type') == 5 and '伺服器人數已滿' in msg.get('message', ''):
+                    messagebox.showwarning("連線失敗", "伺服器人數已滿，請稍後再試。")
+                    self.safe_exit() # 自動關閉程式
                     return
  
                 if msg_type == 6: # 更新名單
