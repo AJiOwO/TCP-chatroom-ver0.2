@@ -79,6 +79,12 @@ def kick_client_by_name(target_name):
     if target_client:
         print(f"踢除: {target_name}")
         try:
+            kick_packet = {
+            'type': 5,
+            'nickname': '系統', 
+            'message': '你已被踢出聊天室',
+            'action': 'kick' 
+        }
             target_client['socket'].sendall((json.dumps({'type': 5,'message': '你已被踢出聊天室'})+'\n').encode('utf-8'))
             time.sleep(0.1)
             target_client['socket'].close()
@@ -130,7 +136,11 @@ def admin_console():
                 
                 print("正在關閉伺服器...")
                 # 1. 廣播通知
-                sys_msg = {'type': 5, 'nickname': '系統', 'message': '伺服器即將關閉，請自行離線。'}
+                sys_msg = {'type': 5, 
+                           'nickname': '系統', 
+                           'message': '伺服器即將關閉，請自行離線。',
+                           'action': 'shutdown'
+                        }
                 data = (json.dumps(sys_msg)+'\n').encode('utf-8')
                 for c in client_list:
                     try: c['socket'].sendall(data)

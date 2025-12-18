@@ -119,13 +119,13 @@ class ChatClient:
                     notify_content = content # 
 
                 # --- 系統公告 (Type 5) ---
-                if msg.get('type') == 5 and msg.get('message') == '你已被踢出聊天室' and msg.get('nickname') == '系統':
+                if msg.get('type') == 5 and msg.get('action') == 'kick':
                     messagebox.showwarning("通知", "你已被管理員踢出聊天室")
                     self.safe_exit()
                     return
 
-                # --- 伺服器關閉處理 ---
-                if msg.get('type') == 5 and '伺服器已關閉' in msg.get('message', '') and msg.get('nickname') == '系統':
+                # --- [修正後] 伺服器關閉處理 ---
+                if msg.get('type') == 5 and msg.get('action') == 'shutdown':
                     self.append_chat("系統", "伺服器已關閉，程式將在 10 秒後結束...", highlight=True)
                     self.entry_msg.config(state='disabled')
                     self.root.after(10000, self.safe_exit)
