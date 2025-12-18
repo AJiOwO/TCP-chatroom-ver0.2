@@ -339,7 +339,9 @@ class ChatClient:
         self.nickname = name
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(5)
             self.sock.connect((ip, int(port)))
+            self.sock.settimeout(None)
             self.sock.sendall((json.dumps({'type': 1, 'nickname': name})+'\n').encode('utf-8'))
             self.is_connected = True
             threading.Thread(target=self.recv_message, daemon=True).start()
