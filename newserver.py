@@ -9,6 +9,7 @@ import os
 BIND_IP = '0.0.0.0'
 BIND_PORT = 6000
 MAX_HISTORY_SEND = 10
+MAX_CLIENTS = 10
 DB_NAME = 'chat_record.db'
 
 client_list = []
@@ -155,7 +156,7 @@ def recv_message(new_sock, sockname):
             
             # --- Type 1: 登入 ---
             if message['type'] == 1:
-                nickname = message['nickname']
+                nickname = message['nickname']   
                 client_list.append({'nickname': nickname, 'socket': new_sock})
                 new_sock.sendall((json.dumps({'type': 2}) + '\n').encode('utf-8'))
                 time.sleep(0.05)
@@ -211,12 +212,15 @@ def recv_message(new_sock, sockname):
                 target = message['target']
                 
                 pm_data = (json.dumps(message) + '\n').encode('utf-8')
+            
                 for client in client_list:
                     if client['nickname'] == target:
-                        try: client['socket'].sendall(pm_data)
-                        except: pass
+                        try: 
+                            client['socket'].sendall(pm_data)
+                        except: 
+                            pass
                         break
-                new_sock.sendall(pm_data)
+                    
             # --- Type 9: 收到圖片訊息 ---
             if message['type'] == 9:
                 current_time = datetime.now().strftime('%Y/%m/%d %H:%M')
@@ -272,4 +276,23 @@ if __name__ == '__main__':
     threading.Thread(target=admin_console, daemon=True).start()
     while True:
         c, a = sock.accept()
+        if len(client_list) >= MAX_CLIENTS:
+            print(f"拒絕連線 {a}: 伺服器已滿 ({len(client_list)}/{MAX_CLIENTS})")
+            
+            try:
+
+                reject_msg = {
+                    'type': 5,
+                    'nickname': '系統',
+                    'message': '伺服器人數已滿，連線被拒絕。'
+                }
+                c.sendall((json.dumps(reject_msg) + '\n').encode('utf-8'))
+                
+                time.sleep(0.1) 
+            except:
+                pass
+            
+            c.close() 
+            continue  
         threading.Thread(target=recv_message, args=(c, a), daemon=True).start()
+        

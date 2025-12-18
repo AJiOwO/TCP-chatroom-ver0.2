@@ -38,7 +38,7 @@ class ChatClient:
     def __init__(self, root):
         self.root = root
         self.root.title("Python Socket Chat Room")
-        self.root.geometry("1600x900")
+        self.root.geometry("1280x800")
         
         self.nickname = ""
         self.sock = None
@@ -129,8 +129,11 @@ class ChatClient:
                         self.entry_msg.config(state='disabled')
                         self.root.after(10000, self.safe_exit)
                     self.append_chat(sender, content, time_str=msg_time)
-                    # notify_content = content # 若系統公告也要通知，把這行註解拿掉
-
+                    if msg.get('type') == 5 and '伺服器人數已滿' in msg.get('message', ''):
+                    messagebox.showwarning("連線失敗", "伺服器人數已滿，請稍後再試。")
+                    self.safe_exit() # 自動關閉程式
+                    return
+ 
                 if msg_type == 6: # 更新名單
                     self.update_user_list(msg['users'])
 
@@ -392,6 +395,7 @@ class ChatClient:
             else:
                 self.target_private_user = target
                 self.lbl_status.config(text=f"私訊: {target}", fg=self.current_theme['highlight'])
+                self.root.after(50, lambda: self.entry_msg.focus_set())
         else:
             self.target_private_user = None
             self.lbl_status.config(text="模式: 廣播", fg=self.current_theme['fg'])
