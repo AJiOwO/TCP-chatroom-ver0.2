@@ -97,8 +97,7 @@ class ChatClient:
                 text = f.readline()
                 if not text: break
                 msg = json.loads(text)
-                
-                # 1. 預先抓取變數
+    
                 msg_type = msg.get('type')
                 nickname = msg.get('nickname', 'Unknown')
                 sender = msg.get('sender', nickname)
@@ -135,11 +134,13 @@ class ChatClient:
                     self.update_user_list(msg['users'])
 
                 # --- 私訊 (Type 7) ---
-                if msg_type == 7:
+                    sender = msg['sender']
                     content = msg['message']
-                    self.append_chat(sender, f"[私訊] {content}", time_str=msg_time, highlight=True)
-                    notify_content = f"[私訊] {content}" # 這裡原本就有寫，所以私訊正常
+                    msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
+                    
+                    self.append_chat(sender, f"[來自 {sender} 的私訊] {content}", time_str=msg_time, highlight=True)
 
+                    self.show_notification(f"來自 {sender} 的私訊", content)
                 # --- 圖片 (Type 9) ---
                 if msg_type == 9:
                     self.append_chat(sender, "傳送了一張圖片", time_str=msg_time)
@@ -262,7 +263,6 @@ class ChatClient:
         if not text: return
         if len(text) > 200: return messagebox.showwarning("警告", "訊息過長")
         
-        # 發送時自己先顯示，並補上當前時間
         current_time = datetime.now().strftime('%Y/%m/%d %H:%M')
         
         try:
@@ -273,6 +273,7 @@ class ChatClient:
                        'sender': self.nickname, 
                        'time': current_time}
                 self.sock.sendall((json.dumps(msg)+'\n').encode('utf-8'))
+                self.append_chat("我", f"[發送私訊給 {self.target_private_user}] {text}", time_str=current_time, highlight=True)
             else:
                 msg = {'type': 3, 
                        'nickname': self.nickname, 
