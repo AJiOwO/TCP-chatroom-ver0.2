@@ -169,6 +169,9 @@ class ChatClient:
                     self.append_chat(sender, "傳送了一張圖片", time_str=msg_time)
                     self.display_image(msg['image_data'])
                     notify_content = "傳送了一張圖片"
+                    
+                    if not is_history:
+                        self.show_notification(f"私訊: {sender}", content)
 
                 # --- 統一通知判斷 ---
                 if notify_content:
