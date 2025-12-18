@@ -134,9 +134,11 @@ class ChatClient:
                     self.update_user_list(msg['users'])
 
                 # --- 私訊 (Type 7) ---
-                    sender = msg['sender']
+                if msg['type'] == 7:
+                    sender = msg['sender','未知使用者']
                     content = msg['message']
                     msg_time = msg.get('time', datetime.now().strftime('%Y/%m/%d %H:%M'))
+                    
                     
                     self.append_chat(sender, f"[來自 {sender} 的私訊] {content}", time_str=msg_time, highlight=True)
 
