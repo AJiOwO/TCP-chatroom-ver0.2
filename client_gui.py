@@ -1,3 +1,6 @@
+#啟動程式前，需下載plyer與pillow
+"輸入：pip install plyer/pip install Pillow"
+
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, filedialog
 import socket
@@ -391,4 +394,5 @@ class ChatClient:
 if __name__ == "__main__":
     root = tk.Tk()
     ChatClient(root)
+
     root.mainloop()
