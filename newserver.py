@@ -85,11 +85,14 @@ def kick_client_by_name(target_name):
             'message': '你已被踢出聊天室',
             'action': 'kick' 
         }
-            target_client['socket'].sendall((json.dumps({'type': 5,'message': '你已被踢出聊天室'})+'\n').encode('utf-8'))
+            target_client['socket'].sendall((json.dumps(kick_packet) + '\n').encode('utf-8'))
             time.sleep(0.1)
             target_client['socket'].close()
-        
-        except: pass
+            
+        except :
+            pass
+            
+            
         if target_client in client_list: client_list.remove(target_client)
         broadcast_user_list()
         
@@ -129,7 +132,7 @@ def admin_console():
                     conn = sqlite3.connect(DB_NAME)
                     c = conn.cursor()
                     c.execute("DELETE FROM messages") # 刪除所有訊息
-                    # c.execute("VACUUM") # 可選：釋放空間
+                   
                     conn.commit()
                     conn.close()
                     print("歷史紀錄已清除。")
@@ -176,7 +179,7 @@ def recv_message(new_sock, sockname):
                 for json_str in recent_history:
                     # 需要把儲存的 JSON 字串解開，標籤，再包裝
                     hist_msg = json.loads(json_str)
-                    hist_msg['is_history'] = True # 告訴 Client 這是歷史訊息
+                    hist_msg['is_history'] = True 
                     new_sock.sendall((json.dumps(hist_msg) + '\n').encode('utf-8'))
                 
                 time.sleep(0.1)

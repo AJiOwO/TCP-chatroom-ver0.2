@@ -135,13 +135,13 @@ class ChatClient:
                         self.root.after(10000, self.safe_exit)
                         return
 
-                    # 3. [新增] 處理人數已滿
+                    # 3. 處理人數已滿
                     elif action == 'full':
                         messagebox.showwarning("連線失敗", "伺服器人數已滿，請稍後再試。")
                         self.safe_exit()
                         return
 
-                    # 4. [關鍵] 一般聊天訊息 (必須要有這段，不然會收不到訊息)
+                    # 4. 一般聊天訊息 (必須要有這段，不然會收不到訊息)
                     else:
                         sender = msg['nickname']
                         content = msg['message']
